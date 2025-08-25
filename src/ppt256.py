@@ -20,6 +20,7 @@ def open_file():
   global palette, file_path
   file_paths = filedialog.askopenfilenames(title="Select a Palette File", filetypes=[
     ("PNG Files", "*.png"),
+    ("Palette Lump", "*.lmp"),
     ("JASC Palette", "*.pal"),
     ("Microsoft Palette", "*.pal"),
     ("Build Engine Palette", "*.DAT"),
@@ -32,6 +33,8 @@ def open_file():
   for file_path in file_paths:
     if file_path.endswith(".png"):
       open_png(file_path)
+    elif file_path.endswith(".lmp"):
+      open_lmp(file_path)
     elif file_path.endswith(".pal"):
       with open(file_path, "rb") as f:
         header = f.read(12)
@@ -58,6 +61,7 @@ def export_file():
   global file_path
   file_path = filedialog.asksaveasfilename(title="Select a Palette File", filetypes=[
     ("PNG Files", "*.png"),
+    ("Palette Lump", "*.lmp"),
     ("JASC Palette", "*.pal"),
     ("Microsoft Palette", "*.mspal"),
     ("Build Engine Palette", "*.DAT"),
@@ -70,6 +74,8 @@ def export_file():
   print(file_path)
   if file_path.endswith(".png"):
     export_png()
+  elif file_path.endswith(".lmp"):
+    export_lmp()
   elif file_path.endswith(".pal"):
     export_jasc_pal()
   elif file_path.endswith(".mspal"):
@@ -104,6 +110,27 @@ def open_png(file_path):
       palette.append(color)
       hex_color = f"#{color[0]:02x}{color[1]:02x}{color[2]:02x}"
       cell_grid[x][y].config(bg=hex_color)
+
+def open_lmp(file_path):
+    """
+    Reads a Quake-format .lmp file and loads it into the palette grid.
+    """
+    try:
+        with open(file_path, "rb") as f:
+            pal_data = f.read()
+    except IOError as e:
+        messagebox.showerror("Error", f"Could not read file {file_path}: {e}")
+        return
+
+    if len(pal_data) != 768:
+        messagebox.showerror("Error", f"Invalid Quake Palette file. Expected 768 bytes, got {len(pal_data)}.")
+        return
+
+    for i in range(0, 768, 3):
+        r, g, b = pal_data[i:i+3]
+        palette.append((r, g, b))
+
+    load_palette()
 
 def open_jasc_pal(file_path):
   with open(file_path, "r") as f:
@@ -248,6 +275,25 @@ def export_act():
   with open(file_path, "wb") as f:
     f.write(bytes(flat_palette))
 
+def export_lmp():
+    """
+    Writes the current palette data to a Quake-format .lmp file.
+    """
+    global file_path
+
+    # Flatten the list of (r, g, b) tuples into a single bytes object.
+    pal_data = bytes([component for color in palette for component in color])
+
+    if len(pal_data) != 768:
+        messagebox.showerror("Error", f"Palette data is incorrect size for .lmp file. Expected 768 bytes, got {len(pal_data)}.")
+        return
+        
+    try:
+        with open(file_path, "wb") as f_lmp:
+            f_lmp.write(pal_data)
+    except IOError as e:
+        messagebox.showerror("Error", f"Error writing to {file_path}: {e}")
+
 def export_png():
   global file_path
 
@@ -294,9 +340,10 @@ def about():
 
 def help():
   message = """
-Palpatine 256 supports the conversion of PNG, Microsoft Palette,
-JASC Palette, Build Engine PALETTE.DAT, GIMP GPL, and Photoshop ACT 
-palettes to 8-bit PNG, Microsoft Palette, JASC Palette, GIMP GPL, 
+Palpatine 256 supports the conversion of PNG, Quake Palette,
+Microsoft Palette, JASC Palette, Build Engine PALETTE.DAT,
+GIMP GPL, and Photoshop ACT palettes to 8-bit PNG, 
+Quake Palette, Microsoft Palette, JASC Palette, GIMP GPL, 
 or Photoshop ACT, while preserving the original index order of 
 the source file.
 
@@ -318,7 +365,7 @@ file, select File > Export File and choose GIMP .gpl.
 """
   help_window = tk.Toplevel()
   help_window.title("Help Palpatine 256")
-  help_window.geometry("600x300")
+  help_window.geometry("600x320")
   help_window.resizable(False, False)
   help_window.iconbitmap(resource_path("icon.ico"))
 
