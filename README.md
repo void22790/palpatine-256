@@ -10,6 +10,8 @@ while preserving the original index order of the source file.
 You can create a source image in any graphics editor and save it
 as a 16×16 PNG file for use with Palpatine 256.
 
+This version now supports integrated color editing, to any RGB value.
+
 ## Importing a Palette
 1. Go to File > Import File.
 2. Choose the appropriate file extension to load as a source palette.
