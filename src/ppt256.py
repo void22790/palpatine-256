@@ -1,6 +1,6 @@
 import tkinter as tk
 import os, sys
-from tkinter import filedialog, messagebox, scrolledtext
+from tkinter import filedialog, messagebox, scrolledtext, colorchooser
 from PIL import Image
 
 rows, cols = 16, 16
@@ -85,6 +85,31 @@ def export_file():
   elif file_path.endswith(".gpl"):
     export_gpl()
 
+def edit_color(row, col):
+    """
+    Opens a color chooser when a cell is double-clicked and updates the color.
+    """
+    if not palette:
+        return
+    # Calculate index of color in flat palette list.
+    color_index = row * cols + col
+    # Get current color to set as init in colorchooser
+    current_rgb = palette[color_index]
+    current_hex = f"#{current_rgb[0]:02x}{current_rgb[1]:02x}{current_rgb[2]:02x}"
+    # open colorchooser. returns new color or none if canceled
+    new_color = colorchooser.askcolor(color=current_hex, title="Select a New Color")
+    
+    # result is a tuple: ((R, G, B), '#RRGGBB')
+    if new_color and new_color[0] is not None:
+        # convert new rgb-values (can be floats) into integer tuple
+        new_rgb = tuple(map(int, new_color[0]))
+        new_hex = new_color[1]
+        
+        #1. update color in global palette data
+        palette[color_index] = new_rgb
+        #2. redraw bckgnd color of clicked cell in UI
+        cell_grid[row][col].config(bg=new_hex)
+
 def _grid():
   
   for x in range(rows):
@@ -92,6 +117,7 @@ def _grid():
     for y in range(cols):
       cell = tk.Label(frame, width=4, height=2, bg="white", relief=tk.SUNKEN, bd=2 )
       cell.grid(row=x, column=y)
+      cell.bind("<Double-1>", lambda event, r=x, c=y: edit_color(r, c))      
       row.append(cell)
     cell_grid.append(row)
 
@@ -313,7 +339,7 @@ def export_png():
 def about():
     message = """
         Palpatine 256
-        v1.1
+        v1.15
         © 2025 voidsrc
         contact@voidsrc.com
     """
@@ -343,7 +369,7 @@ def help():
 Palpatine 256 supports the conversion of PNG, Quake Palette,
 Microsoft Palette, JASC Palette, Build Engine PALETTE.DAT,
 GIMP GPL, and Photoshop ACT palettes to 8-bit PNG, 
-Quake Palette, Microsoft Palette, JASC Palette, GIMP GPL, 
+Palette LMP, Microsoft Palette, JASC Palette, GIMP GPL, 
 or Photoshop ACT, while preserving the original index order of 
 the source file.
 
@@ -362,6 +388,12 @@ Example
 If you have a PNG palette file named my_palette.png (16×16), choose 
 PNG as the extension when importing. To convert it into a GIMP .gpl 
 file, select File > Export File and choose GIMP .gpl.
+
+---------------------------------------------------------------------
+
+Credits to Pup Luka for .lmp file support,
+and color editing implementation.
+ - aeroxsoftware@null.net -
 """
   help_window = tk.Toplevel()
   help_window.title("Help Palpatine 256")
